@@ -1,0 +1,96 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX 10
+
+// Structure for a process
+struct Process {
+    int id;            // Process ID
+    int burst_time;    // Burst time
+    int arrival_time;  // Arrival time
+};
+
+// Function to perform FCFS scheduling
+void fcfs(struct Process queue[], int n) {
+    int waiting_time[MAX], turnaround_time[MAX];
+    int total_waiting_time = 0, total_turnaround_time = 0;
+
+    // Initialize waiting times to 0 for the first process
+    waiting_time[0] = 0;
+
+    // Calculate waiting time for each process
+    for (int i = 1; i < n; i++) {
+        waiting_time[i] = queue[i - 1].burst_time + waiting_time[i - 1];
+    }
+
+    // Calculate turnaround time for each process
+    for (int i = 0; i < n; i++) {
+        turnaround_time[i] = queue[i].burst_time + waiting_time[i];
+        total_waiting_time += waiting_time[i];
+        total_turnaround_time += turnaround_time[i];
+    }
+
+    // Output process details and scheduling information
+    printf("Process ID\tArrival Time\tBurst Time\tWaiting Time\tTurnaround Time\n");
+    for (int i = 0; i < n; i++) {
+        printf("%d\t\t%d\t\t%d\t\t%d\t\t%d\n", queue[i].id, queue[i].arrival_time, queue[i].burst_time, waiting_time[i], turnaround_time[i]);
+    }
+
+    printf("\nAverage Waiting Time: %.2f\n", (float)total_waiting_time / n);
+    printf("Average Turnaround Time: %.2f\n", (float)total_turnaround_time / n);
+}
+
+// Function to sort processes by arrival time
+void sort_processes_by_arrival_time(struct Process queue[], int n) {
+    for (int i = 0; i < n - 1; i++) {
+        for (int j = i + 1; j < n; j++) {
+            if (queue[i].arrival_time > queue[j].arrival_time) {
+                struct Process temp = queue[i];
+                queue[i] = queue[j];
+                queue[j] = temp;
+            }
+        }
+    }
+}
+
+// Main function to simulate the multi-level queue scheduling
+int main() {
+    struct Process system_queue[MAX], user_queue[MAX];
+    int system_process_count, user_process_count;
+
+    // Input number of system and user processes
+    printf("Enter the number of system processes: ");
+    scanf("%d", &system_process_count);
+    printf("Enter the number of user processes: ");
+    scanf("%d", &user_process_count);
+
+    // Input burst time and arrival time for system processes
+    printf("\nEnter burst time and arrival time for system processes (separated by space for each process):\n");
+    for (int i = 0; i < system_process_count; i++) {
+        system_queue[i].id = i + 1;
+        printf("System Process %d: ", i + 1);
+        scanf("%d %d", &system_queue[i].burst_time, &system_queue[i].arrival_time);
+    }
+
+    // Input burst time and arrival time for user processes
+    printf("\nEnter burst time and arrival time for user processes (separated by space for each process):\n");
+    for (int i = 0; i < user_process_count; i++) {
+        user_queue[i].id = i + system_process_count + 1;
+        printf("User Process %d: ", i + system_process_count + 1);
+        scanf("%d %d", &user_queue[i].burst_time, &user_queue[i].arrival_time);
+    }
+
+    // Sort both queues by arrival time
+    sort_processes_by_arrival_time(system_queue, system_process_count);
+    sort_processes_by_arrival_time(user_queue, user_process_count);
+
+    // Execute FCFS for system processes (higher priority)
+    printf("\nScheduling System Processes (Higher Priority) - FCFS:\n");
+    fcfs(system_queue, system_process_count);
+
+    // Execute FCFS for user processes (lower priority)
+    printf("\nScheduling User Processes (Lower Priority) - FCFS:\n");
+    fcfs(user_queue, user_process_count);
+
+    return 0;
+}
