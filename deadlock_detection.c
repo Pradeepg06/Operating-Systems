@@ -61,7 +61,7 @@ int main() {
         }
 
         if (!progress) {
-            break; // No further progress — deadlock may exist
+            break; // No further progress â€” deadlock may exist
         }
     }
 
