@@ -12,19 +12,15 @@ int main() {
 
     printf("Enter number of memory blocks: ");
     scanf("%d", &blocks);
-    printf("Enter size of each memory block:\n");
-    for (int i = 0; i < blocks; i++) {
-        printf("Block %d: ", i + 1);
+    printf("Enter the sizes of the %d memory blocks (space-separated):\n", blocks);
+    for (int i = 0; i < blocks; i++)
         scanf("%d", &blockSize[i]);
-    }
 
     printf("Enter number of processes: ");
     scanf("%d", &processes);
-    printf("Enter size of each process:\n");
-    for (int i = 0; i < processes; i++) {
-        printf("Process %d: ", i + 1);
+    printf("Enter the sizes of the %d processes (space-separated):\n", processes);
+    for (int i = 0; i < processes; i++)
         scanf("%d", &processSize[i]);
-    }
 
     printf("\n--- First Fit Allocation ---\n");
     firstFit(blockSize, blocks, processSize, processes);
