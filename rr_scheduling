@@ -1,77 +1,22 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <string.h>
 
 struct process_rr {
     char process_id[5];
     int arrival_time;
     int burst_time;
-    int remaining_time; // Remaining time for the process
+    int remaining_time;
     int completion_time;
     int turn_around_time;
     int waiting_time;
     int response_time;
 };
 
-// Function to input process details
-void input_process_details(struct process_rr *p) {
-    printf("Enter Process ID: ");
-    scanf("%s", p->process_id);
-
-    printf("Enter Arrival Time: ");
-    scanf("%d", &p->arrival_time);
-
-    printf("Enter Burst Time: ");
-    scanf("%d", &p->burst_time);
-    p->remaining_time = p->burst_time; // Initialize remaining time
-}
-
-// Function to calculate completion time, waiting time, and turn around time
-void calculate_times(struct process_rr *p, int n, int quantum) {
-    int current_time = 0;
-    int completed = 0;
-
-    while (completed < n) {
-        for (int i = 0; i < n; i++) {
-            if (p[i].remaining_time > 0) {
-                if (current_time < p[i].arrival_time) {
-                    current_time = p[i].arrival_time; // Jump to the arrival time if idle
-                }
-
-                if (p[i].remaining_time > quantum) {
-                    current_time += quantum;
-                    p[i].remaining_time -= quantum;
-                } else {
-                    current_time += p[i].remaining_time;
-                    p[i].completion_time = current_time;
-                    p[i].turn_around_time = p[i].completion_time - p[i].arrival_time;
-                    p[i].waiting_time = p[i].turn_around_time - p[i].burst_time;
-                    p[i].response_time = p[i].waiting_time; // Response time is same as waiting time in RR
-                    p[i].remaining_time = 0; // Process is completed
-                    completed++;
-                }
-            }
-        }
-    }
-}
-
-// Function to display process details in table format
-void display_process_details(struct process_rr p[], int n) {
-    // Print header row
-    printf("\n%-15s%-15s%-15s%-15s%-15s%-15s%-15s\n", "Process ID", "Arrival Time", "Burst Time", "Completion Time", "Turn Around Time", "Waiting Time", "Response Time");
-    printf("------------------------------------------------------------------------------------------------------\n");
-
-    // Print process details for each process
-    for (int i = 0; i < n; i++) {
-        printf("%-15s%-15d%-15d%-15d%-15d%-15d%-15d\n", p[i].process_id, p[i].arrival_time, p[i].burst_time, p[i].completion_time, p[i].turn_around_time, p[i].waiting_time, p[i].response_time);
-    }
-}
-
-// Function to sort processes based on arrival time (Bubble Sort)
+// Sort by arrival time
 void sort_processes_by_arrival_time(struct process_rr p[], int n) {
     for (int i = 0; i < n - 1; i++) {
         for (int j = 0; j < n - i - 1; j++) {
             if (p[j].arrival_time > p[j + 1].arrival_time) {
-                // Swap the processes
                 struct process_rr temp = p[j];
                 p[j] = p[j + 1];
                 p[j + 1] = temp;
@@ -80,68 +25,125 @@ void sort_processes_by_arrival_time(struct process_rr p[], int n) {
     }
 }
 
-// Function to calculate averages for turnaround time, waiting time, and response time
-void calculate_averages(struct process_rr p[], int n) {
-    int total_turnaround_time = 0;
-    int total_waiting_time = 0;
-    int total_response_time = 0;
+// Display process details
+void display_process_details(struct process_rr p[], int n) {
+    printf("\n%-12s%-14s%-12s%-18s%-18s%-16s%-15s\n",
+           "Process", "Arrival Time", "Burst Time",
+           "Completion Time", "Turnaround Time", "Waiting Time", "Response Time");
+    printf("---------------------------------------------------------------------------------------------\n");
 
     for (int i = 0; i < n; i++) {
-        total_turnaround_time += p[i].turn_around_time;
-        total_waiting_time += p[i].waiting_time;
-        total_response_time += p[i].response_time;
+        printf("%-12s%-14d%-12d%-18d%-18d%-16d%-15d\n",
+               p[i].process_id, p[i].arrival_time, p[i].burst_time,
+               p[i].completion_time, p[i].turn_around_time,
+               p[i].waiting_time, p[i].response_time);
+    }
+}
+
+// Calculate Round Robin Scheduling
+void calculate_times(struct process_rr *p, int n, int quantum) {
+    int time = 0, completed = 0;
+    int queue[100], front = 0, rear = 0;
+    int visited[n];
+    for (int i = 0; i < n; i++) visited[i] = 0;
+
+    sort_processes_by_arrival_time(p, n);
+
+    queue[rear++] = 0;
+    visited[0] = 1;
+
+    while (completed < n) {
+        int index = queue[front++];
+
+        if (p[index].remaining_time == p[index].burst_time) {
+            if (time < p[index].arrival_time)
+                time = p[index].arrival_time;
+
+            p[index].response_time = time - p[index].arrival_time;
+        }
+
+        if (p[index].remaining_time > quantum) {
+            p[index].remaining_time -= quantum;
+            time += quantum;
+        } else {
+            time += p[index].remaining_time;
+            p[index].remaining_time = 0;
+            completed++;
+
+            p[index].completion_time = time;
+            p[index].turn_around_time = time - p[index].arrival_time;
+            p[index].waiting_time = p[index].turn_around_time - p[index].burst_time;
+        }
+
+        for (int i = 0; i < n; i++) {
+            if (p[i].arrival_time <= time && !visited[i] && p[i].remaining_time > 0) {
+                queue[rear++] = i;
+                visited[i] = 1;
+            }
+        }
+
+        if (p[index].remaining_time > 0)
+            queue[rear++] = index;
+
+        if (front == rear && completed < n) {
+            for (int i = 0; i < n; i++) {
+                if (p[i].remaining_time > 0) {
+                    queue[rear++] = i;
+                    visited[i] = 1;
+                    if (time < p[i].arrival_time)
+                        time = p[i].arrival_time;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+// Averages
+void calculate_averages(struct process_rr p[], int n) {
+    int total_tat = 0, total_wt = 0, total_rt = 0;
+
+    for (int i = 0; i < n; i++) {
+        total_tat += p[i].turn_around_time;
+        total_wt += p[i].waiting_time;
+        total_rt += p[i].response_time;
     }
 
-    printf("\nAverages:\n");
-    printf("Average Turnaround Time: %.2f\n", (float)total_turnaround_time / n);
-    printf("Average Waiting Time: %.2f\n", (float)total_waiting_time / n);
-    printf("Average Response Time: %.2f\n", (float)total_response_time / n);
+    printf("\nAverage Turnaround Time: %.2f\n", (float)total_tat / n);
+    printf("Average Waiting Time   : %.2f\n", (float)total_wt / n);
+    printf("Average Response Time  : %.2f\n", (float)total_rt / n);
 }
 
 int main() {
     int n, quantum;
-    printf("Enter the number of processes: ");
+
+    printf("Enter number of processes: ");
     scanf("%d", &n);
 
-    struct process_rr processes[n];  // Declare an array of structures
+    struct process_rr processes[n];
 
-    int choice;
-    do {
-        printf("\nMenu:\n");
-        printf("1. Input Process Details\n");
-        printf("2. Display All Process Details\n");
-        printf("3. Exit\n");
+    printf("Enter process IDs (e.g., P1 P2 P3):\n");
+    for (int i = 0; i < n; i++) {
+        scanf("%s", processes[i].process_id);
+    }
 
-        printf("Enter your choice: ");
-        scanf("%d", &choice);
+    printf("Enter arrival times (e.g., 0 1 2):\n");
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &processes[i].arrival_time);
+    }
 
-        switch(choice) {
-            case 1:
-                // Input details for each process
-                for (int i = 0; i < n; i++) {
-                    printf("\nEnter details for Process %d:\n", i + 1);
-                    input_process_details(&processes[i]);
-                }
-                printf("Enter Time Quantum: ");
-                scanf("%d", &quantum);
-                break;
+    printf("Enter burst times (e.g., 5 3 8):\n");
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &processes[i].burst_time);
+        processes[i].remaining_time = processes[i].burst_time; // initialize
+    }
 
-            case 2:
-                // Sort processes by arrival time before calculating and displaying
-                sort_processes_by_arrival_time(processes, n);
-                calculate_times(processes, n, quantum);
-                display_process_details(processes, n);
-                calculate_averages(processes, n);  // Calculate and display averages
-                break;
+    printf("Enter time quantum: ");
+    scanf("%d", &quantum);
 
-            case 3:
-                printf("Exiting...\n");
-                break;
-
-            default:
-                printf("Invalid choice, please try again.\n");
-        }
-    } while (choice != 3);
+    calculate_times(processes, n, quantum);
+    display_process_details(processes, n);
+    calculate_averages(processes, n);
 
     return 0;
 }
